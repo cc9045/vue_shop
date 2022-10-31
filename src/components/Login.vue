@@ -5,18 +5,19 @@
         <img src="../assets/avatar.png" alt="">
       </div>
       <!-- 登录表单区 -->
-      <el-form label-width="60px" class="login_form">
-        <el-form-item label="用户名">
-          <el-input
+      <el-form ref="loginFormRef" :model="loginForm" :rules="loginFormRules" label-width="60px" class="login_form"
+      :hide-required-asterisk="true">
+        <el-form-item label="用户名" prop="username"> <!-- prop对应rules规则约束，只能在item项中声明 -->
+          <el-input v-model="loginForm.username"
           prefix-icon="iconfont icon-user"></el-input>
         </el-form-item>
-        <el-form-item label="密码">
-          <el-input
+        <el-form-item label="密码" prop="password">
+          <el-input v-model="loginForm.password" show-password
           prefix-icon="iconfont icon-3702mima"></el-input>
         </el-form-item>
         <el-form-item class="btns">
-          <el-button type="primary">登录</el-button>
-          <el-button type="primary" plain>注册</el-button>
+          <el-button type="primary" @click="login">登录</el-button>
+          <el-button type="info" @click="resetForm">重置</el-button>
         </el-form-item>
        </el-form>
     </div>
@@ -25,7 +26,62 @@
 
 <script>
 export default {
-
+  data() {
+    return {
+      //登录表单数据绑定对象 
+      loginForm: {
+        username: 'admin',
+        password: '123456'
+      },
+      //登录表单验证规则对象
+      loginFormRules: {
+        //验证用户名是否合法，类型为数组对象
+        username: [
+          { required: true, message: '请输入用户名', trigger: 'blur' },
+          { min:3, max: 10, message: '长度在3-10个字符', trigger: 'blur'}
+        ],
+        password: [
+          { required: true, message: '请输入密码', trigger: 'blur' },
+          { min: 6, max: 15, message: '长度在6-15个字符', trigger: 'blur' },
+          {
+            //正则验证
+            // pattern: /^(?!^\d+$)(?!^[a-zA-Z]+$)[0-9a-zA-Z]{4,23}$/,//必须包含数字和字母
+            // message: '请输入正确的密码,密码必须包含数字和字符', trigger: 'blur'
+            pattern: /^[A-Za-z0-9]+$/,//只由数字和字母组成，不能包含特殊字符
+            message: '请输入正确的密码,不能包含特殊字符', trigger: 'blur'
+          }
+        ]
+      }
+    }
+  },
+  methods: {
+    //重置按钮重置登录表单
+    resetForm() {
+      console.log(this);
+      //清除表单，ref获取引用声明的组件对象,resetFields是自带的表单清除函数
+      this.$refs.loginFormRef.resetFields();
+    },
+    login() {
+      //表单预验证，valid是一个回调函数的形参布尔值，用于判断验证是否通过
+      this.$refs.loginFormRef.validate(async valid => {
+        //console.log(valid);
+        if (!valid) return;
+        // const res = await this.$http.post("login", this.loginForm);
+        // console.log(res);
+        //赋值解构,直接提取data的数据
+        const { data: res } = await this.$http.post("login", this.loginForm);
+        //console.log(res);
+        if (res.meta.status !== 200) return this.$message.error('登录失败！')
+        this.$message.success('登录成功！')
+        // 1. 将登录成功之后的 token，保存到客户端的 sessionStorage 中
+        //   1.1 项目中出了登录之外的其他API接口，必须在登录之后才能访问
+        //   1.2 token 只应在当前网站打开期间生效，所以将 token 保存在 sessionStorage 中
+        window.sessionStorage.setItem('token', res.data.token)//sessionStorge是当前会话窗口
+        // 2. 通过编程式导航跳转到后台主页，路由地址是 /home
+        this.$router.push('/home')
+      });
+    }
+  }
 }
 </script>
 
